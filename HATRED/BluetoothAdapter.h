@@ -15,15 +15,10 @@ public:
 
     bool pairDevice(const WCHAR *name);
 
-    bool findFirstRadio();
-
-    bool findDevice(const WCHAR *name);
-
-    bool authenticate();
-
-    void runServerMode();
-
 protected:
+    bool findFirstRadio();
+    bool findDevice(const WCHAR *name);
+    bool authenticate();
     void dumpRadioInfo();
     void dumpDeviceInfo(const BLUETOOTH_DEVICE_INFO &deviceInfo);
 
