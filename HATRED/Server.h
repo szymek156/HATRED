@@ -5,18 +5,12 @@ class Server
 {
 public:
     Server();
-    ~Server();
-    void run();
-
+    virtual ~Server();
+    virtual void run() = 0;
 protected:
     bool initSocks();
-    bool openConnection();
-    bool waitClientToConnect();
-    void readData();
-
-    wchar_t *createInstanceName();
+    static GUID getGUIDSpecifier();
 
     SOCKET mLocalSocket;
-    SOCKET mClientSocket;
 };
 

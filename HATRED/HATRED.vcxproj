@@ -82,6 +82,8 @@
   <ItemGroup>
     <ClInclude Include="BluetoothAdapter.h" />
     <ClInclude Include="Server.h" />
+    <ClInclude Include="ServerRX.h" />
+    <ClInclude Include="ServerTX.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
@@ -89,6 +91,8 @@
     <ClCompile Include="BluetoothAdapter.cpp" />
     <ClCompile Include="HATRED.cpp" />
     <ClCompile Include="Server.cpp" />
+    <ClCompile Include="ServerRX.cpp" />
+    <ClCompile Include="ServerTX.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

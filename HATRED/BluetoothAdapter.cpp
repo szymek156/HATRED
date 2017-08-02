@@ -1,5 +1,8 @@
 #include "stdafx.h"
 #include "BluetoothAdapter.h"
+#include <sstream>
+#include <iomanip>
+#include <stdio.h>
 
 BluetoothAdapter::BluetoothAdapter() : mRadioEnumerator(nullptr), mRadio(nullptr), mDeviceEnumerator(nullptr)
 {
@@ -79,6 +82,20 @@ bool BluetoothAdapter::pairDevice(const WCHAR *name)
     }
 
     return false;
+}
+
+std::string BluetoothAdapter::getMacAddressOfConnectedDevice()
+{
+    const int MAC_STRING_SIZE = 32;
+    char buffer[MAC_STRING_SIZE] = { 0 };
+    
+    _snprintf_s(buffer, MAC_STRING_SIZE, "%02X:%02X:%02X:%02X:%02X:%02X", 
+        mDeviceInfo.Address.rgBytes[5], mDeviceInfo.Address.rgBytes[4], mDeviceInfo.Address.rgBytes[3],
+        mDeviceInfo.Address.rgBytes[2], mDeviceInfo.Address.rgBytes[1], mDeviceInfo.Address.rgBytes[0]);
+
+    std::string formated(buffer);
+    
+    return formated;
 }
 
 bool BluetoothAdapter::findFirstRadio()

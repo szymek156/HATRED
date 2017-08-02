@@ -5,7 +5,7 @@
 #include <Winsock2.h>
 #include <Ws2bth.h>
 #include <BluetoothAPIs.h>
-
+#include <string>
 
 class BluetoothAdapter
 {
@@ -14,6 +14,7 @@ public:
     virtual ~BluetoothAdapter();
 
     bool pairDevice(const WCHAR *name);
+    std::string getMacAddressOfConnectedDevice();
 
 protected:
     bool findFirstRadio();
