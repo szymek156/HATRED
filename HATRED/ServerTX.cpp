@@ -12,7 +12,7 @@ const LPWSTR MOJ_ASUS = L"DC:53:60:6F:E3:1A";
 const LPWSTR NOKIA    = L"80:00:0B:24:10:25";
 const LPWSTR ELEPHONE = L"94:71:BC:89:A8:AB";
 
-ServerTX::ServerTX(std::string &remoteMacAddress)
+ServerTX::ServerTX(std::string &remoteMacAddress) : mRemoteMacAddress(nullptr)
 {
     // Now you know, why project is called HATRED?
     size_t size = strlen(remoteMacAddress.c_str()) + 1;
@@ -30,6 +30,8 @@ ServerTX::~ServerTX()
 
 bool ServerTX::openConnection()
 {
+    wprintf(L"ServerTX::openConnection: For MAC '%s'...\n", mRemoteMacAddress);
+
     SOCKADDR_BTH remoteBthAddr = { 0 };
 
     int addressLength = sizeof(SOCKADDR_BTH);
@@ -62,6 +64,7 @@ bool ServerTX::openConnection()
         return false;
     }
 
+    wprintf(L"ServerTX::openConnection: For MAC '%s' success\n", mRemoteMacAddress);
     return true;
 }
 

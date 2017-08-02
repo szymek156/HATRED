@@ -84,19 +84,19 @@ bool ServerRX::openConnection()
         wprintf(L"=CRITICAL= | WSASetService() call failed. WSAGetLastError=[%d]\n", WSAGetLastError());
     }
 
-    wprintf(L"Server::openConnection: Success.\n");
+    wprintf(L"ServerRX::openConnection: Success.\n");
     return true;
 }
 
 bool ServerRX::waitClientToConnect()
 {
-    wprintf(L"Server::waitClientToConnect: Waiting...\n");
+    wprintf(L"ServerRX::waitClientToConnect: Waiting...\n");
 
     // listen() call indicates winsock2 to listen on a given socket for any incoming connection.    
     int queueSize = 4;
     if (SOCKET_ERROR == listen(mLocalSocket, queueSize))
     {
-        wprintf(L"Server::waitClientToConnect listen() call failed w/socket = [0x%I64X]. WSAGetLastError=[%d]\n", (ULONG64)mLocalSocket, WSAGetLastError());
+        wprintf(L"ServerRX::waitClientToConnect listen() call failed w/socket = [0x%I64X]. WSAGetLastError=[%d]\n", (ULONG64)mLocalSocket, WSAGetLastError());
         return false;
     }
 
@@ -110,18 +110,18 @@ bool ServerRX::waitClientToConnect()
 
     if (INVALID_SOCKET == mClientSocket)
     {
-        wprintf(L"Server::waitClientToConnect: accept() call failed. WSAGetLastError=[%d]\n", WSAGetLastError());
+        wprintf(L"ServerRX::waitClientToConnect: accept() call failed. WSAGetLastError=[%d]\n", WSAGetLastError());
         return false;
     }
 
-    wprintf(L"Server::waitClientToConnect: Client connected.\n");
+    wprintf(L"ServerRX::waitClientToConnect: Client connected.\n");
 
     return true;
 }
 
 void ServerRX::readData()
 {
-    wprintf(L"Server::readData: Waiting for data...\n");
+    wprintf(L"ServerRX::readData: Waiting for data...\n");
 
 #define CXN_TEST_DATA_STRING              (L"~!@#$%^&*()-_=+?<>1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 #define CXN_TRANSFER_DATA_LENGTH          (sizeof(CXN_TEST_DATA_STRING))

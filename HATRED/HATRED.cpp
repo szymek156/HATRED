@@ -10,6 +10,20 @@
 #include "BluetoothAdapter.h"
 #include "ServerRX.h"
 #include "ServerTX.h"
+#include "AudioCapture.h"
+#include <thread>
+
+void startServerTX(std::string &macAddress)
+{
+    ServerTX server(macAddress);
+    server.run();
+}
+
+void startServerRX()
+{
+    ServerRX server;
+    server.run();
+}
 
 int main(int argc, char **args)
 {
@@ -17,8 +31,14 @@ int main(int argc, char **args)
 
     if (adapter.pairDevice(L"5CG4383LR5"))
     {
-        ServerTX server(adapter.getMacAddressOfConnectedDevice());
-        server.run();
+        AudioCapture audio;
+        audio.run();
+        std::thread rx(startServerRX);
+        std::thread tx(startServerTX, adapter.getMacAddressOfConnectedDevice());
+        
+
+        rx.join();
+        tx.join();
     }
 
     
