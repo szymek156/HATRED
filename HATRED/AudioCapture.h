@@ -20,14 +20,21 @@ protected:
     bool initAudioClient();
 
     bool getDeviceFormat();
+    bool initCapture();
+
+    void captureLoop();
 
     void prepareFile();
-    bool initCapture();
+    void finishFile();
+
 
     IMMDevice *mDefaultAudioDevice;
     IAudioClient *mAudioClient;
     IAudioCaptureClient *mAudioCaptureClient;
 
     WAVEFORMATEX *mDeviceFormat;
+    REFERENCE_TIME mDevicePeriod;
+
+    HANDLE mTask;
 };
 

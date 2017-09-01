@@ -1,10 +1,17 @@
 #include "stdafx.h"
 #include "AudioCapture.h"
 #include <mmdeviceapi.h>
+#include <thread>
+#include <chrono>
 
-AudioCapture::AudioCapture() : mDefaultAudioDevice(nullptr), mAudioClient(nullptr), mDeviceFormat(nullptr), mAudioCaptureClient(nullptr)
+AudioCapture::AudioCapture() : mDefaultAudioDevice(nullptr), mAudioClient(nullptr), mDeviceFormat(nullptr), mAudioCaptureClient(nullptr), mTask(nullptr), mDevicePeriod(0)
 {
     CoInitialize(NULL);
+
+    // Register with MMCSS - inform Windows scheduler, that current thread will be used for Audio processing, 
+    // so give him enough priority, to avoid jitter
+    DWORD taskIndex = 0;
+    mTask = AvSetMmThreadCharacteristics(L"Audio", &taskIndex);
 }
 
 
@@ -27,6 +34,8 @@ AudioCapture::~AudioCapture()
 
     CoTaskMemFree(mDeviceFormat);
 
+    AvRevertMmThreadCharacteristics(mTask);
+
     CoUninitialize();
 }
 
@@ -44,7 +53,7 @@ HRESULT open_file(LPCWSTR szFileName, HMMIO *phFile) {
         );
 
     if (NULL == *phFile) {
-        wprintf(L"mmioOpen(\"%ls\", ...) failed. wErrorRet == %u", szFileName, mi.wErrorRet);
+        wprintf(L"mmioOpen(\"%ls\", ...) failed. wErrorRet == %u\n", szFileName, mi.wErrorRet);
         return E_FAIL;
     }
 
@@ -60,7 +69,7 @@ HRESULT WriteWaveHeader(HMMIO hFile, LPCWAVEFORMATEX pwfx, MMCKINFO *pckRIFF, MM
 
     result = mmioCreateChunk(hFile, pckRIFF, MMIO_CREATERIFF);
     if (MMSYSERR_NOERROR != result) {
-        wprintf(L"mmioCreateChunk(\"RIFF/WAVE\") failed: MMRESULT = 0x%08x", result);
+        wprintf(L"mmioCreateChunk(\"RIFF/WAVE\") failed: MMRESULT = 0x%08x\n", result);
         return E_FAIL;
     }
 
@@ -69,7 +78,7 @@ HRESULT WriteWaveHeader(HMMIO hFile, LPCWAVEFORMATEX pwfx, MMCKINFO *pckRIFF, MM
     chunk.ckid = MAKEFOURCC('f', 'm', 't', ' ');
     result = mmioCreateChunk(hFile, &chunk, 0);
     if (MMSYSERR_NOERROR != result) {
-        wprintf(L"mmioCreateChunk(\"fmt \") failed: MMRESULT = 0x%08x", result);
+        wprintf(L"mmioCreateChunk(\"fmt \") failed: MMRESULT = 0x%08x\n", result);
         return E_FAIL;
     }
 
@@ -82,14 +91,14 @@ HRESULT WriteWaveHeader(HMMIO hFile, LPCWAVEFORMATEX pwfx, MMCKINFO *pckRIFF, MM
         lBytesInWfx
         );
     if (lBytesWritten != lBytesInWfx) {
-        wprintf(L"mmioWrite(fmt data) wrote %u bytes; expected %u bytes", lBytesWritten, lBytesInWfx);
+        wprintf(L"mmioWrite(fmt data) wrote %u bytes; expected %u bytes\n", lBytesWritten, lBytesInWfx);
         return E_FAIL;
     }
 
     // ascend from the 'fmt ' chunk
     result = mmioAscend(hFile, &chunk, 0);
     if (MMSYSERR_NOERROR != result) {
-        wprintf(L"mmioAscend(\"fmt \" failed: MMRESULT = 0x%08x", result);
+        wprintf(L"mmioAscend(\"fmt \" failed: MMRESULT = 0x%08x\n", result);
         return E_FAIL;
     }
 
@@ -97,7 +106,7 @@ HRESULT WriteWaveHeader(HMMIO hFile, LPCWAVEFORMATEX pwfx, MMCKINFO *pckRIFF, MM
     chunk.ckid = MAKEFOURCC('f', 'a', 'c', 't');
     result = mmioCreateChunk(hFile, &chunk, 0);
     if (MMSYSERR_NOERROR != result) {
-        wprintf(L"mmioCreateChunk(\"fmt \") failed: MMRESULT = 0x%08x", result);
+        wprintf(L"mmioCreateChunk(\"fmt \") failed: MMRESULT = 0x%08x\n", result);
         return E_FAIL;
     }
 
@@ -106,14 +115,14 @@ HRESULT WriteWaveHeader(HMMIO hFile, LPCWAVEFORMATEX pwfx, MMCKINFO *pckRIFF, MM
     DWORD frames = 0;
     lBytesWritten = mmioWrite(hFile, reinterpret_cast<PCHAR>(&frames), sizeof(frames));
     if (lBytesWritten != sizeof(frames)) {
-        wprintf(L"mmioWrite(fact data) wrote %u bytes; expected %u bytes", lBytesWritten, (UINT32)sizeof(frames));
+        wprintf(L"mmioWrite(fact data) wrote %u bytes; expected %u bytes\n", lBytesWritten, (UINT32)sizeof(frames));
         return E_FAIL;
     }
 
     // ascend from the 'fact' chunk
     result = mmioAscend(hFile, &chunk, 0);
     if (MMSYSERR_NOERROR != result) {
-        wprintf(L"mmioAscend(\"fact\" failed: MMRESULT = 0x%08x", result);
+        wprintf(L"mmioAscend(\"fact\" failed: MMRESULT = 0x%08x\n", result);
         return E_FAIL;
     }
 
@@ -121,7 +130,7 @@ HRESULT WriteWaveHeader(HMMIO hFile, LPCWAVEFORMATEX pwfx, MMCKINFO *pckRIFF, MM
     pckData->ckid = MAKEFOURCC('d', 'a', 't', 'a');
     result = mmioCreateChunk(hFile, pckData, 0);
     if (MMSYSERR_NOERROR != result) {
-        wprintf(L"mmioCreateChunk(\"data\") failed: MMRESULT = 0x%08x", result);
+        wprintf(L"mmioCreateChunk(\"data\") failed: MMRESULT = 0x%08x\n", result);
         return E_FAIL;
     }
 
@@ -133,29 +142,38 @@ HRESULT FinishWaveFile(HMMIO hFile, MMCKINFO *pckRIFF, MMCKINFO *pckData) {
 
     result = mmioAscend(hFile, pckData, 0);
     if (MMSYSERR_NOERROR != result) {
-        wprintf(L"mmioAscend(\"data\" failed: MMRESULT = 0x%08x", result);
+        wprintf(L"mmioAscend(\"data\" failed: MMRESULT = 0x%08x\n", result);
         return E_FAIL;
     }
 
     result = mmioAscend(hFile, pckRIFF, 0);
     if (MMSYSERR_NOERROR != result) {
-        wprintf(L"mmioAscend(\"RIFF/WAVE\" failed: MMRESULT = 0x%08x", result);
+        wprintf(L"mmioAscend(\"RIFF/WAVE\" failed: MMRESULT = 0x%08x\n", result);
         return E_FAIL;
     }
 
     return S_OK;
 }
 
+MMCKINFO ckRIFF = { 0 };
+MMCKINFO ckData = { 0 };
+HMMIO hFile;
+////////////////////////////////////////////////////////////////////////////////////////////
+
 void AudioCapture::prepareFile()
 {
 #define DEFAULT_FILE L"loopback-capture.wav"
 
-    HMMIO hFile;
+    
     open_file(DEFAULT_FILE, &hFile);
 
-    MMCKINFO ckRIFF = { 0 };
-    MMCKINFO ckData = { 0 };
+
     WriteWaveHeader(hFile, mDeviceFormat, &ckRIFF, &ckData);
+}
+
+void AudioCapture::finishFile()
+{
+    FinishWaveFile(hFile, &ckData, &ckRIFF);
 }
 
 bool AudioCapture::getDeviceFormat()
@@ -165,7 +183,7 @@ bool AudioCapture::getDeviceFormat()
     HRESULT result = mAudioClient->GetMixFormat(&mDeviceFormat);
     if (FAILED(result))
     {
-        wprintf(L"IAudioClient::GetMixFormat failed: hr = 0x%08x", result);
+        wprintf(L"IAudioClient::GetMixFormat failed: hr = 0x%08x\n", result);
         return false;
     }
     
@@ -197,14 +215,14 @@ bool AudioCapture::getDeviceFormat()
             }
             else 
             {
-                wprintf(L"%s", L"Don't know how to coerce mix format to int-16");
+                wprintf(L"%s", L"Don't know how to coerce mix format to int-16\n");
                 return false;
             }
 
             break;
         }
         default:
-            wprintf(L"Don't know how to coerce WAVEFORMATEX with wFormatTag = 0x%08x to int-16", mDeviceFormat->wFormatTag);
+            wprintf(L"Don't know how to coerce WAVEFORMATEX with wFormatTag = 0x%08x to int-16\n", mDeviceFormat->wFormatTag);
             return false;
     }
 
@@ -219,7 +237,7 @@ bool AudioCapture::findDefaultAudioDevice()
     HRESULT result = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&deviceEnumerator);
     if (FAILED(result)) 
     {
-        wprintf(L"CoCreateInstance(IMMDeviceEnumerator) failed: hr = 0x%08x", result);
+        wprintf(L"CoCreateInstance(IMMDeviceEnumerator) failed: hr = 0x%08x\n", result);
         return false;
     }
 
@@ -227,7 +245,7 @@ bool AudioCapture::findDefaultAudioDevice()
     result = deviceEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &mDefaultAudioDevice);
     if (FAILED(result))
     {
-        wprintf(L"IMMDeviceEnumerator::GetDefaultAudioEndpoint failed: hr = 0x%08x", result);
+        wprintf(L"IMMDeviceEnumerator::GetDefaultAudioEndpoint failed: hr = 0x%08x\n", result);
     }
 
     deviceEnumerator->Release();
@@ -242,7 +260,7 @@ bool AudioCapture::initAudioClient()
 
     if (FAILED(result)) 
     {
-        wprintf(L"IMMDevice::Activate(IAudioClient) failed: hr = 0x%08x", result);
+        wprintf(L"IMMDevice::Activate(IAudioClient) failed: hr = 0x%08x\n", result);
     }
 
     return SUCCEEDED(result);
@@ -254,7 +272,7 @@ bool AudioCapture::initCapture()
 
     if (FAILED(result)) 
     {
-        wprintf(L"IAudioClient::Initialize failed: hr = 0x%08x", result);
+        wprintf(L"IAudioClient::Initialize failed: hr = 0x%08x\n", result);
         return false;
     }
 
@@ -263,10 +281,101 @@ bool AudioCapture::initCapture()
 
     if (FAILED(result))
     {
-        wprintf(L"IAudioClient::GetService(IAudioCaptureClient) failed: hr = 0x%08x", result);
+        wprintf(L"IAudioClient::GetService(IAudioCaptureClient) failed: hr = 0x%08x\n", result);
+        return false;
     }
 
+
+    // get the default device periodicity
+    result = mAudioClient->GetDevicePeriod(&mDevicePeriod, NULL);
+
+    if (FAILED(result))
+    {
+        wprintf(L"GetDevicePeriod failed: hr = 0x%08x\n", result);
+        return false;
+    }
+
+    mDevicePeriod /= 2;
+    mDevicePeriod /= 10 * 1000; // convert to ms
+
+
     return SUCCEEDED(result);
+}
+
+void AudioCapture::captureLoop()
+{
+    // call IAudioClient::Start
+    HRESULT result = mAudioClient->Start();
+
+    if (FAILED(result)) 
+    {
+        wprintf(L"AudioCapture::captureLoop: hr = 0x%08x\n", result);
+        return;
+    }
+    
+    bool bDone = false;
+    bool bFirstPacket = true;
+    UINT32 nFrames = 0;
+
+    for (UINT32 nPasses = 0; !bDone && nPasses < 80 * 200; nPasses++)
+    {
+        // drain data while it is available
+        UINT32 nNextPacketSize;
+        for (result = mAudioCaptureClient->GetNextPacketSize(&nNextPacketSize); SUCCEEDED(result) && nNextPacketSize > 0; result = mAudioCaptureClient->GetNextPacketSize(&nNextPacketSize))
+        //while (result = mAudioCaptureClient->GetNextPacketSize(&nNextPacketSize) && SUCCEEDED(result) && nNextPacketSize > 0) 
+        {
+            // get the captured data
+            BYTE *pData;
+            UINT32 nNumFramesToRead;
+            DWORD dwFlags;
+            
+            result = mAudioCaptureClient->GetBuffer(&pData, &nNumFramesToRead, &dwFlags, NULL, NULL);
+
+            if (FAILED(result)) 
+            {
+                wprintf(L"IAudioCaptureClient::GetBuffer failed on pass %u after %u frames: hr = 0x%08x\n", nPasses, nFrames, result);
+                return;
+            }
+
+            if (0 != dwFlags) 
+            {
+                wprintf(L"IAudioCaptureClient::GetBuffer set flags to 0x%08x on pass %u after %u frames\n", dwFlags, nPasses, nFrames);
+            }
+
+            if (0 == nNumFramesToRead) 
+            {
+                wprintf(L"IAudioCaptureClient::GetBuffer said to read 0 frames on pass %u after %u frames\n", nPasses, nFrames);
+                return;
+            }
+
+            LONG lBytesToWrite = nNumFramesToRead * mDeviceFormat->nBlockAlign;
+            LONG lBytesWritten = mmioWrite(hFile, reinterpret_cast<PCHAR>(pData), lBytesToWrite);
+
+            if (lBytesToWrite != lBytesWritten) {
+                wprintf(L"mmioWrite wrote %u bytes on pass %u after %u frames: expected %u bytes\n", lBytesWritten, nPasses, nFrames, lBytesToWrite);
+                return;
+            }
+
+            nFrames += nNumFramesToRead;
+
+            result = mAudioCaptureClient->ReleaseBuffer(nNumFramesToRead);
+
+            if (FAILED(result)) {
+                wprintf(L"IAudioCaptureClient::ReleaseBuffer failed on pass %u after %u frames: hr = 0x%08x\n", nPasses, nFrames, result);
+                return;
+            }
+
+            bFirstPacket = false;
+        }
+
+        if (FAILED(result)) {
+            wprintf(L"IAudioCaptureClient::GetNextPacketSize failed on pass %u after %u frames: hr = 0x%08x\n", nPasses, nFrames, result);
+            return;
+        }
+
+        std::chrono::milliseconds ms(mDevicePeriod);
+        std::this_thread::sleep_for(ms);
+    } // capture loop
 }
 
 void AudioCapture::run()
@@ -274,6 +383,11 @@ void AudioCapture::run()
     if (findDefaultAudioDevice() && initAudioClient() && getDeviceFormat() && initCapture())
     {
         prepareFile();
+
+        captureLoop();
+
+        finishFile();
     }
     
 }
+

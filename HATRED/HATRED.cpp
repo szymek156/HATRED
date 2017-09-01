@@ -27,18 +27,18 @@ void startServerRX()
 
 int main(int argc, char **args)
 {
-    BluetoothAdapter adapter;
+    //BluetoothAdapter adapter;
 
-    if (adapter.pairDevice(L"5CG4383LR5"))
+   // if (adapter.pairDevice(L"5CG4383LR5"))
     {
         AudioCapture audio;
         audio.run();
-        std::thread rx(startServerRX);
+        /*std::thread rx(startServerRX);
         std::thread tx(startServerTX, adapter.getMacAddressOfConnectedDevice());
         
 
         rx.join();
-        tx.join();
+        tx.join();*/
     }
 
     
