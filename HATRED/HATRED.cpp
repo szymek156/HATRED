@@ -4,6 +4,7 @@
 // TODO: 
 // 1) avoid gui communication when pairing devices
 // 2) change tcp to udp
+// 3) there is an temptetion to implement deque, ring buffer using atomics
 
 #include "stdafx.h"
 #include <iostream>
@@ -11,6 +12,7 @@
 #include "ServerRX.h"
 #include "ServerTX.h"
 #include "AudioCapture.h"
+#include "Encoder.h"
 #include <thread>
 
 void startServerTX(std::string &macAddress)
@@ -31,8 +33,8 @@ int main(int argc, char **args)
 
    // if (adapter.pairDevice(L"5CG4383LR5"))
     {
-        AudioCapture audio;
-        audio.run();
+        //AudioCapture audio;
+        //audio.run();
         /*std::thread rx(startServerRX);
         std::thread tx(startServerTX, adapter.getMacAddressOfConnectedDevice());
         
@@ -41,7 +43,13 @@ int main(int argc, char **args)
         tx.join();*/
     }
 
-    
+
+    Encoder enc(48000, 2);
+
+    const int len = 2 * 4096;
+    short buff[len];
+    enc.encode(buff, len);
+
 
     printf("going to exit\n");
     getchar();

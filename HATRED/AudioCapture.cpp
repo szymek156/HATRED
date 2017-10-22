@@ -321,8 +321,10 @@ void AudioCapture::captureLoop()
     {
         // drain data while it is available
         UINT32 nNextPacketSize;
-        for (result = mAudioCaptureClient->GetNextPacketSize(&nNextPacketSize); SUCCEEDED(result) && nNextPacketSize > 0; result = mAudioCaptureClient->GetNextPacketSize(&nNextPacketSize))
-        //while (result = mAudioCaptureClient->GetNextPacketSize(&nNextPacketSize) && SUCCEEDED(result) && nNextPacketSize > 0) 
+        //for (result = mAudioCaptureClient->GetNextPacketSize(&nNextPacketSize); SUCCEEDED(result) && nNextPacketSize > 0; result = mAudioCaptureClient->GetNextPacketSize(&nNextPacketSize))
+        result = mAudioCaptureClient->GetNextPacketSize(&nNextPacketSize);
+
+        while (SUCCEEDED(result) && nNextPacketSize > 0) 
         {
             // get the captured data
             BYTE *pData;
@@ -366,6 +368,8 @@ void AudioCapture::captureLoop()
             }
 
             bFirstPacket = false;
+
+            result = mAudioCaptureClient->GetNextPacketSize(&nNextPacketSize);
         }
 
         if (FAILED(result)) {
