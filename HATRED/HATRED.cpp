@@ -13,6 +13,7 @@
 #include "ServerTX.h"
 #include "AudioCapture.h"
 #include "Encoder.h"
+#include "Container.h"
 #include <thread>
 
 void startServerTX(std::string &macAddress)
@@ -43,7 +44,7 @@ int main(int argc, char **args)
         tx.join();*/
     }
 
-
+    Container c;
     Encoder enc(48000, 2);
 
     const int len = 2 * 4096;

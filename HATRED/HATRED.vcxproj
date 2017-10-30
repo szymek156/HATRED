@@ -41,7 +41,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\HOBBY\programiren\projekty\HATRED\lib\opus-1.2.1\include;$(IncludePath)</IncludePath>
+    <IncludePath>D:\HOBBY\programiren\projekty\HATRED\lib\include;$(IncludePath)</IncludePath>
     <LibraryPath>D:\HOBBY\programiren\projekty\HATRED\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -58,7 +58,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Bthprops.lib;ws2_32.lib;avrt.lib;ole32.lib;winmm.lib;opus.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Bthprops.lib;ws2_32.lib;avrt.lib;ole32.lib;winmm.lib;opus.lib;libogg_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -84,6 +84,7 @@
   <ItemGroup>
     <ClInclude Include="AudioCapture.h" />
     <ClInclude Include="BluetoothAdapter.h" />
+    <ClInclude Include="Container.h" />
     <ClInclude Include="Encoder.h" />
     <ClInclude Include="Server.h" />
     <ClInclude Include="ServerRX.h" />
@@ -94,6 +95,7 @@
   <ItemGroup>
     <ClCompile Include="AudioCapture.cpp" />
     <ClCompile Include="BluetoothAdapter.cpp" />
+    <ClCompile Include="Container.cpp" />
     <ClCompile Include="Encoder.cpp" />
     <ClCompile Include="HATRED.cpp" />
     <ClCompile Include="Server.cpp" />
