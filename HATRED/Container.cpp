@@ -3,6 +3,11 @@
 
 Container::Container()
 {
+
+}
+
+Container::Container(int frameRate) : m_frameRate(frameRate)
+{
     ogg_int64_t        last_granulepos = 0;
     ogg_int64_t        enc_granulepos = 0;
     ogg_int64_t        original_samples = 0;
@@ -50,12 +55,7 @@ int Container::storeHeader(unsigned char *data, int size)
             break;
         }
 
-        written = writePage();
-        
-        if (written != m_page.header_len + m_page.body_len){
-            fprintf(stderr, "Error: failed writing header to output stream\n");
-            exit(1);
-        }
+        written += writePage();
     }
 
     return written;
@@ -63,8 +63,18 @@ int Container::storeHeader(unsigned char *data, int size)
 
 int Container::storeData(unsigned char *data, int size)
 {
+    m_packet.packet = data;
+    m_packet.bytes = size;
+    m_packet.b_o_s = 0;
+    m_packet.granulepos = m_packet.granulepos + size * 48000 / m_frameRate;
+    ogg_stream_packetin(&m_streamState, &m_packet);
 
-
+    while (ogg_stream_pageout(&m_streamState, &m_page))
+    {
+        //std::cout << "Container::storeData got page!\n";
+        writePage();
+    }
+    
     return -1;
 }
 

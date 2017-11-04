@@ -43,6 +43,7 @@
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>D:\HOBBY\programiren\projekty\HATRED\lib\include;$(IncludePath)</IncludePath>
     <LibraryPath>D:\HOBBY\programiren\projekty\HATRED\lib;$(LibraryPath)</LibraryPath>
+    <SourcePath>D:\HOBBY\programiren\projekty\HATRED\HATRED\extern;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -86,6 +87,7 @@
     <ClInclude Include="BluetoothAdapter.h" />
     <ClInclude Include="Container.h" />
     <ClInclude Include="Encoder.h" />
+    <ClInclude Include="extern\opus_header.h" />
     <ClInclude Include="Server.h" />
     <ClInclude Include="ServerRX.h" />
     <ClInclude Include="ServerTX.h" />
@@ -97,6 +99,7 @@
     <ClCompile Include="BluetoothAdapter.cpp" />
     <ClCompile Include="Container.cpp" />
     <ClCompile Include="Encoder.cpp" />
+    <ClCompile Include="extern\opus_header.cpp" />
     <ClCompile Include="HATRED.cpp" />
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="ServerRX.cpp" />

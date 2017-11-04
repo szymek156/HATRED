@@ -7,6 +7,8 @@
 #include <avrt.h>
 #include <functiondiscoverykeys_devpkey.h>
 
+#include "Encoder.h"
+
 class AudioCapture
 {
 public:
@@ -36,5 +38,7 @@ protected:
     REFERENCE_TIME mDevicePeriod;
 
     HANDLE mTask;
+
+    Encoder m_encoder;
 };
 

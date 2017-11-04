@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Encoder.h"
+#include "extern\opus_header.h"
 
 #include <stdio.h>
 #include <string>
@@ -209,9 +210,13 @@ void fuzz_encoder_settings(const int num_encoders, const int num_setting_changes
     //}
 }
 
-Encoder::Encoder(int samplingRate, int channels) : m_frameSize(960), m_channels(channels)
+Encoder::Encoder(int samplingRate, int channels) : m_bitrate(samplingRate), m_channels(channels)
 {
     int err;
+
+    m_frameSize = static_cast<int>(FrameMsToBytes::ms20) / (48000 / samplingRate);
+
+    m_container = std::unique_ptr<Container>(new Container(m_bitrate));
 
     m_enc = opus_encoder_create(samplingRate, m_channels, OPUS_APPLICATION_AUDIO, &err);
                                 
@@ -222,7 +227,7 @@ Encoder::Encoder(int samplingRate, int channels) : m_frameSize(960), m_channels(
     }
 
 
-    int status = opus_encoder_ctl(m_enc, OPUS_SET_BITRATE(OPUS_AUTO));
+  /*  int status = opus_encoder_ctl(m_enc, OPUS_SET_BITRATE(OPUS_AUTO));
 
     if ( status != OPUS_OK)
     {
@@ -257,7 +262,7 @@ Encoder::Encoder(int samplingRate, int channels) : m_frameSize(960), m_channels(
     if (opus_encoder_ctl(m_enc, OPUS_SET_SIGNAL(OPUS_SIGNAL_MUSIC)) != OPUS_OK)
     {
         throw std::invalid_argument("Failed to create encoder for rate ");
-    }
+    }*/
 
     //if (opus_encoder_ctl(m_enc, OPUS_SET_INBAND_FEC(inband_fec)) != OPUS_OK)
     //{
@@ -289,6 +294,8 @@ Encoder::Encoder(int samplingRate, int channels) : m_frameSize(960), m_channels(
     //    throw std::invalid_argument(std::string("Failed to create encoder for rate "));
     //}
 
+    writeHeader();
+
 }
 
 
@@ -315,11 +322,15 @@ void Encoder::encode(opus_int16 *input, int length)
 {
     unsigned char packet[MAX_PACKET];
 
+    //std::cout << "encode, input data len " << length << "\n";
+
     for (int i = 0; i < length / m_channels; i += m_frameSize)
     {
-        int len = opus_encode(m_enc, input + i, m_frameSize, packet, MAX_PACKET);
+        int len = opus_encode(m_enc, input + i, m_frameSize/2, packet, MAX_PACKET);
 
-        std::cout << "len " << len << "\n";
+        //std::cout << "len " << len << "\n";
+
+        m_container->storeData(packet, len);
 
         if (len < 0 || len > MAX_PACKET)
         {
@@ -327,4 +338,32 @@ void Encoder::encode(opus_int16 *input, int length)
         }
     }
     
+}
+
+
+void Encoder::writeHeader()
+{
+    OpusHeader header = { 0 };
+
+    header.channels = m_channels;
+    header.preskip = 0;
+    header.input_sample_rate = m_bitrate;
+    // Gain is set to zero, change, if you what you're doing.
+    header.gain = 0;
+    header.channel_mapping = 0;
+
+    /*The Identification Header is 19 bytes, plus a Channel Mapping Table for
+    mapping families other than 0. The Channel Mapping Table is 2 bytes +
+    1 byte per channel. Because the maximum number of channels is 255, the
+    maximum size of this header is 19 + 2 + 255 = 276 bytes.*/
+    unsigned char header_data[276] = { 0 };
+
+    int packet_size = opus_header_to_packet(&header, header_data, sizeof(header_data));
+
+    m_container->storeHeader(header_data, packet_size);
+
+    // Rest is only used if channel mapping != 0
+    // header.nb_streams;
+    // header.nb_coupled;
+    // header.stream_map;
 }

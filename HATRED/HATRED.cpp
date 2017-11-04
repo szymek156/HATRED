@@ -34,8 +34,8 @@ int main(int argc, char **args)
 
    // if (adapter.pairDevice(L"5CG4383LR5"))
     {
-        //AudioCapture audio;
-        //audio.run();
+        AudioCapture audio;
+        audio.run();
         /*std::thread rx(startServerRX);
         std::thread tx(startServerTX, adapter.getMacAddressOfConnectedDevice());
         
@@ -43,14 +43,6 @@ int main(int argc, char **args)
         rx.join();
         tx.join();*/
     }
-
-    Container c;
-    Encoder enc(48000, 2);
-
-    const int len = 2 * 4096;
-    short buff[len];
-    enc.encode(buff, len);
-
 
     printf("going to exit\n");
     getchar();

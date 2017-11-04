@@ -4,7 +4,9 @@
 #include <thread>
 #include <chrono>
 
-AudioCapture::AudioCapture() : mDefaultAudioDevice(nullptr), mAudioClient(nullptr), mDeviceFormat(nullptr), mAudioCaptureClient(nullptr), mTask(nullptr), mDevicePeriod(0)
+AudioCapture::AudioCapture() : 
+    mDefaultAudioDevice(nullptr), mAudioClient(nullptr), mDeviceFormat(nullptr), 
+    mAudioCaptureClient(nullptr), mTask(nullptr), mDevicePeriod(0), m_encoder(48000, 2)
 {
     CoInitialize(NULL);
 
@@ -12,6 +14,8 @@ AudioCapture::AudioCapture() : mDefaultAudioDevice(nullptr), mAudioClient(nullpt
     // so give him enough priority, to avoid jitter
     DWORD taskIndex = 0;
     mTask = AvSetMmThreadCharacteristics(L"Audio", &taskIndex);
+
+
 }
 
 
@@ -317,7 +321,7 @@ void AudioCapture::captureLoop()
     bool bFirstPacket = true;
     UINT32 nFrames = 0;
 
-    for (UINT32 nPasses = 0; !bDone && nPasses < 80 * 200; nPasses++)
+    for (UINT32 nPasses = 0; !bDone; nPasses++)
     {
         // drain data while it is available
         UINT32 nNextPacketSize;
@@ -351,12 +355,14 @@ void AudioCapture::captureLoop()
             }
 
             LONG lBytesToWrite = nNumFramesToRead * mDeviceFormat->nBlockAlign;
-            LONG lBytesWritten = mmioWrite(hFile, reinterpret_cast<PCHAR>(pData), lBytesToWrite);
+            
+            m_encoder.encode(reinterpret_cast<short *>(pData), lBytesToWrite);
 
+            /*LONG lBytesWritten = mmioWrite(hFile, reinterpret_cast<PCHAR>(pData), lBytesToWrite);
             if (lBytesToWrite != lBytesWritten) {
                 wprintf(L"mmioWrite wrote %u bytes on pass %u after %u frames: expected %u bytes\n", lBytesWritten, nPasses, nFrames, lBytesToWrite);
                 return;
-            }
+            }*/
 
             nFrames += nNumFramesToRead;
 

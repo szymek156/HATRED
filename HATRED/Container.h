@@ -7,6 +7,7 @@ class Container
 {
 public:
     Container();
+    Container(int frameRate);
     virtual ~Container();
 
     int storeHeader(unsigned char *data, int size);
@@ -21,6 +22,9 @@ protected:
     ogg_stream_state   m_streamState;
     ogg_page           m_page;
     ogg_packet         m_packet;
+
+    int m_frameRate;
+    int m_frameSize;
 
 };
 
